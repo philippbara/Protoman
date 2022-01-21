@@ -19,5 +19,11 @@ export function validateEnvName(newName: string, currentName: string, nameList: 
 }
 
 export function toVarMap(env: Env): EnvVars {
-  return env.vars.reduce((acc, [k, v]) => Object.assign(acc, { [k]: v }), {});
+  const a = env.vars.map(function(item) {
+    return item[0] == 'NOW' ? ['NOW', Math.round(Date.now() / 1000)] : item;
+  });
+  const b = a.map(function(item) {
+    return item[0] == 'VALIDITY' ? ['VALIDITY', Math.round(Date.now() / 1000 + 60 * 60 * 8)] : item;
+  });
+  return b.reduce((acc, [k, v]) => Object.assign(acc, { [k]: v }), {});
 }
