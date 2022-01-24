@@ -4,6 +4,13 @@
 
 A [Postman](https://www.postman.com/)-like API client for [protobuf](https://developers.google.com/protocol-buffers)-based messages.
 
+## Usage for CARAMEL project
+
+1. **Follow the instructions below to install Protoman**
+2. **Import the .json collections included in the caramel folder**
+3. **Import and build the .proto files included in the caramel folder**
+4. **The collections use the environment variables NOW and VALIDITY. Add these to your environment with any value. The value will be replaced with the actual time once you run the collection.** 
+
 ## Usage
 
 1. **Register your .proto files to enable protobuf-related features. Right click on the collection, select 'Manage .proto files' to register the file paths.</span>**

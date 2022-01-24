@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option optimize_for = SPEED;
+import "security_message_protocol.proto";
+package resp;
+
+//
+// \brief The SourceIdentifier message provides detailed and unique information about the source of certain messages
+// The ID field should be unique or manufacturer dependent 
+//
+message Response {
+    string message = 1; // response message from backend
+    double status = 2; // response message status
+    double id = 3; // source messages id in database
+    // repeated  BackendInfoMessage warnings = 0;
+    }

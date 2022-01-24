@@ -1,0 +1,188 @@
+syntax = "proto3";
+
+option optimize_for = SPEED;
+
+import "common.proto";
+
+package smp;
+
+//
+// \brief The SourceIdentifier message provides detailed and unique information about the source of certain messages
+// The ID field should be unique or manufacturer dependent 
+//
+message SourceIdentifier {
+    string id = 1; // Unique identifier - can be e.g. IPV6 address, UUID, ...
+    SourceType type = 2; // Of what type is the source
+    string name = 3; // Human readable name of the source
+    string manufacturer = 4; // Human readable name of the manufacturer
+    string description = 5; // Human readable description of the source
+
+    enum SourceType {
+        SOURCE_TYPE_UNKNOWN = 0;
+        SOURCE_TYPE_VEHICLE = 1;
+        SOURCE_TYPE_MOTORBIKE = 2;
+        SOURCE_TYPE_BICYLE = 3;
+        SOURCE_TYPE_SCOOTER = 4;
+        SOURCE_TYPE_PEDESTRIAN = 5;
+        SOURCE_TYPE_TRAFFIC_SIGN = 6;
+        SOURCE_TYPE_TRAFFIC_LIGHT = 7;
+        SOURCE_TYPE_BUILDING = 8;
+        SOURCE_TYPE_POLE = 9;
+        SOURCE_TYPE_CONSTRUCTION_SITE_ELEMENT = 10;
+        SOURCE_TYPE_CHARGER = 11;
+        SOURCE_TYPE_SENSOR = 12;
+        SOURCE_TYPE_ECU = 13;
+        SOURCE_TYPE_COMMUNICATION = 14;
+        SOURCE_TYPE_BACKEND = 15;
+    }
+}
+
+//
+// \brief The threat message describes a threat being detected by a system or being reported e.g. from the backend to a vehicle
+//
+message Threat {
+    ThreatType type = 1; // What type of threat is being reported
+    ThreatSource source = 2; // Describes what system was being addressed by the threat
+    ThreatSeverity severity = 3; // Severity of the threat
+    ThreatLevel level = 4; // Defines how likely the threat is
+    string description = 5; // human readable description of the threat
+    string grouping = 6; // threat grouping identifies and mapping attack possibilities to specific regions, vehicles, sensors, ...
+
+    enum ThreatType {
+        THREAT_TYPE_UNKNOWN = 0;
+        THREAT_TYPE_SPOOFING = 1;
+        THREAT_TYPE_TAMPERING = 2;
+        THREAT_TYPE_REPUDIATION = 3;
+        THREAT_TYPE_INFORMATION_DISCLOSURE = 4;
+        THREAT_TYPE_ELEVATIONOF_PRIVILIEGE = 5;
+        THREAT_TYPE_DENIAL_OF_SERVICE = 6;
+        THREAT_TYPE_V2X_MESSAGE_ATTACK = 7; // obsolet, please do not use.
+        THREAT_TYPE_NO_THREAT = 8;
+    }
+
+    enum ThreatSource {
+        THREAT_SOURCE_UNKNOWN = 0;
+        THREAT_SOURCE_NONE = 1;
+        THREAT_SOURCE_GNSS = 2;
+        THREAT_SOURCE_CAMERA = 3;
+        THREAT_SOURCE_RADAR = 4;
+        THREAT_SOURCE_LIDAR = 5;
+        THREAT_SOURCE_ODOMETRY = 6;
+        THREAT_SOURCE_X2X = 7;
+        THREAT_SOURCE_INFOTAINMENT = 8;
+        THREAT_SOURCE_ECU = 9;
+        THREAT_SOURCE_STEERING = 10;
+        THREAT_SOURCE_BRAKE = 11;
+        THREAT_SOURCE_SAFETY = 12;
+        THREAT_SOURCE_BLUETOOTH = 13;
+        THREAT_SOURCE_WIFI = 14;
+    }
+
+    enum ThreatSeverity {
+        THREAT_SEVERITY_UNKNOWN = 0;
+        THREAT_SEVERITY_VERY_LOW = 1;
+        THREAT_SEVERITY_LOW = 2;
+        THREAT_SEVERITY_MEDIUM = 3;
+        THREAT_SEVERITY_HIGH = 4;
+        THREAT_SEVERITY_VERY_HIGH = 5;
+    }
+
+    enum ThreatLevel {
+        THREAT_LEVEL_UNKNOWN = 0;
+        THREAT_LEVEL_VERY_UNLIKELY = 1;
+        THREAT_LEVEL_UNLIKELY = 2;
+        THREAT_LEVEL_LIKELY = 3;
+        THREAT_LEVEL_VERY_LIKELY = 4;
+    }
+}
+
+//
+// \brief A message containing basic data about the sender of the message
+// Can be a vehicle, or e.g. a charging station
+//
+message HostData {
+    BaseMoving base = 1; // Base data like position, orientation, ...
+    BaseMoving base2nd = 2; // Secondary location stream
+    repeated Coordinates trajectory = 3; // Currently panned route of the object, if available
+    HostDataChannel channel = 4; // see below
+
+    // A generic message able to hold arbitrary host data
+    // like e.g. SoC (state of charge), rpm, charging state, wheel speeds, sensor data (e.g. rain sensor) ...
+    message HostDataChannel {
+        string name = 1;
+        double value = 2;
+    }
+}
+
+//
+// \brief A message describing a security issue
+// Additional data can be provided, e.g. in case a traffic sign is being altered and
+// the system detects it, it can provide a sample image to the backend
+//
+message SecurityIssue {
+    SourceIdentifier source = 1; // Which system reported the issue (e.g. specific sensor, ECU, ...)
+    Threat threat = 2; // What threat is being reported by the security issue
+    string description = 3; // Provide a human readable description of the issue
+    SnapshotType snapshotType = 4; // If snapshot data is available, of what type is it
+    bytes snapshotData = 5; // E.g. sample image data, video, CAN trace, ...
+	double startDistance = 6; // In which distance the threat starts
+    double endDistance = 7; // In which distance the threat ends
+
+    enum SnapshotType {
+        SNAPSHOT_TYPE_UNKNOWN = 0;
+        SNAPSHOT_TYPE_IMAGE = 1;
+        SNAPSHOT_TYPE_VIDEO = 2;
+        SNAPSHOT_TYPE_CAN = 3;
+    }
+}
+
+
+//
+// \brief A message an object (e.g. vehicle, charging station, ...) can send to the backend to either provide continuous data
+// or report security issues  
+//
+message HostStatusMessage {
+    Timestamp publishedTime = 1; // Timestamp when message is being published
+    Timestamp messagecreation = 2; // Timestamp when message is being created
+    Timestamp validity = 3; // validity interval from the message creation
+    SourceIdentifier identifier = 4; // Identifier of object sending the data, e.g. vehicle
+    HostStatusMessageType messageType = 5; // Defines what type of message it is
+    HostData hostData = 6; // Publish host relate data like e.g. vehicle telemetry
+    string summary = 7; // Provide a short, readable summary of that message
+    SecurityIssue issue = 8; // In case message is of type HOST_STATUS_MESSAGE_TYPE_ISSUE, an issues has to be provided
+    repeated SourceIdentifier surroundingObject = 9; // Provide a list of objects around, if available
+    repeated Coordinates region = 10; // Provide a list of polygon points
+    ExtraFields extra = 11; // Option for developer for sending extra data
+
+    enum HostStatusMessageType {
+        HOST_STATUS_MESSAGE_TYPE_UNKNOWN = 0;
+        HOST_STATUS_MESSAGE_TYPE_GENERAL = 1;
+        HOST_STATUS_MESSAGE_TYPE_ISSUE = 2;
+    }
+}
+
+//
+// \brief A message an object can send to the backend to either provide continuous data
+// or report security issues  
+//
+message BackendInfoMessage {
+    Timestamp publishedTime = 1; // Timestamp when message is being published
+    Timestamp messagecreation = 2; // Timestamp when message is being created
+    Timestamp validity = 3; // validity interval from the message creation
+    SourceIdentifier identifier = 4; // Identifier of object sending the data - in that case the backend identifier
+    BackendInfoMessageType messageType = 5; // What type of backend message is it
+    string summary = 6; // Provide a short, readable summary of that message
+    SecurityIssue issue = 7;  // In case message is of type BACKEND_INFO_MESSAGE_TYPE_ISSUE, an issues is provided
+    repeated Coordinates region = 8; // Defines a region where the information is valid
+    repeated SourceIdentifier addressedObject = 9; // Provides a list of objects being addressed with this message
+	double id = 10; // Provide a BackendInfoMessage id
+    ExtraFields extra = 11; // Option for developer for sending extra data
+
+    enum BackendInfoMessageType {
+        BACKEND_INFO_MESSAGE_TYPE_UNKNOWN = 0;
+        BACKEND_INFO_MESSAGE_TYPE_GENERAL = 1;
+        BACKEND_INFO_MESSAGE_TYPE_ISSUE = 2;
+        BACKEND_INFO_MESSAGE_TYPE_ACCIDENT = 3;
+        BACKEND_INFO_MESSAGE_TYPE_ROAD_CONDITION = 4;
+    }
+}
